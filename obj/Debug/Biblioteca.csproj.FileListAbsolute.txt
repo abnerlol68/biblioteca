@@ -1,0 +1,11 @@
+D:\uni\Quinto Semestre\Simulación\code\Biblioteca\bin\Debug\Biblioteca.exe.config
+D:\uni\Quinto Semestre\Simulación\code\Biblioteca\bin\Debug\Biblioteca.exe
+D:\uni\Quinto Semestre\Simulación\code\Biblioteca\bin\Debug\Biblioteca.pdb
+D:\uni\Quinto Semestre\Simulación\code\Biblioteca\obj\Debug\Biblioteca.csproj.AssemblyReference.cache
+D:\uni\Quinto Semestre\Simulación\code\Biblioteca\obj\Debug\Biblioteca.csproj.SuggestedBindingRedirects.cache
+D:\uni\Quinto Semestre\Simulación\code\Biblioteca\obj\Debug\Biblioteca.csproj.CoreCompileInputs.cache
+D:\uni\Quinto Semestre\Simulación\code\Biblioteca\obj\Debug\Biblioteca.exe
+D:\uni\Quinto Semestre\Simulación\code\Biblioteca\obj\Debug\Biblioteca.pdb
+D:\uni\Quinto Semestre\Simulación\code\Biblioteca\bin\Debug\SimSharp.dll
+D:\uni\Quinto Semestre\Simulación\code\Biblioteca\bin\Debug\SimSharp.xml
+D:\uni\Quinto Semestre\Simulación\code\Biblioteca\obj\Debug\Biblioteca.csproj.CopyComplete
