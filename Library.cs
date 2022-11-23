@@ -1,10 +1,5 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using SimSharp;
 
 namespace Biblioteca
@@ -13,33 +8,55 @@ namespace Biblioteca
     {
         Simulation env;
         Random random;
+        Resource lookers;
         Resource stands;
         Resource readingArea;
         Resource librarian;
 
         int SEED = 666;
         int TOTAL_CLIENTS = 50;
+        int CAPACITY_LOOKER = 5;
         int CAPACITY_STAND = 4;
         int CAPACITY_READING_AREA = 6;
         int NUM_LIBRARIANS = 1;
         int TOTAL_CLIENTS_IN_READING_AREA = 0;
         int TOTAL_CLIENTS_IN_RENT_BOOK = 0;
+        int TOTAL_CLIENTS_IN_GO_TO_LOOKER = 0;
+        int TOTAL_CLIENTS_IN_STANT = 0;
 
         double TIME_ARRIVE_CLIENT = 10;
 
         double TOTAL_TIME_AWAITED_SELECT = 0;
         double TOTAL_TIME_AWAITED_READ = 0;
         double TOTAL_TIME_AWAITED_RENT = 0;
+        double TOTAL_TIME_AWAITED_GO_TO_LOOKER = 0;
         double TIME_SERVICE = 0;
         double TIME_END = 0;
 
         public Library()
         {
             this.env = new Simulation();
-            this.random = new Random();
+            this.random = new Random(this.SEED);
+            this.lookers = new Resource(this.env, this.CAPACITY_LOOKER);
             this.stands = new Resource(this.env, this.CAPACITY_STAND);
             this.readingArea = new Resource(this.env, this.CAPACITY_READING_AREA);
             this.librarian = new Resource(this.env, this.NUM_LIBRARIANS);
+        }
+
+        public IEnumerable<Event> GoToLooker(string name)
+        {
+            double arrive = this.env.NowD;
+            int timeGoToLooker = 15;
+            double await = this.random.Next(5, timeGoToLooker + 1);
+
+            yield return this.env.TimeoutD(await);
+
+            double finishGoToLooker = this.env.NowD;
+            double awaited = finishGoToLooker - arrive;
+            this.TOTAL_TIME_AWAITED_GO_TO_LOOKER += awaited;
+            this.TIME_SERVICE += finishGoToLooker;
+
+            this.env.Log(string.Format("---> {0} terminó de buscar un libro en el minuto {1:0.00} habiendo esperado {2:0.00}", name, finishGoToLooker, awaited));
         }
 
         public IEnumerable<Event> SelectBook(string name)
@@ -52,7 +69,7 @@ namespace Biblioteca
 
             double finishSelectBook = this.env.NowD;
             double awaited = finishSelectBook - arrive;
-            TOTAL_TIME_AWAITED_SELECT += awaited;
+            this.TOTAL_TIME_AWAITED_SELECT += awaited;
             this.TIME_SERVICE += finishSelectBook;
 
             this.env.Log(string.Format("---> {0} terminó de buscar un libro en el minuto {1:0.00} habiendo esperado {2:0.00}", name, finishSelectBook, awaited));
@@ -68,7 +85,7 @@ namespace Biblioteca
 
             double finishReadBook = this.env.NowD;
             double awaited = finishReadBook - arrive;
-            TOTAL_TIME_AWAITED_READ += awaited;
+            this.TOTAL_TIME_AWAITED_READ += awaited;
             this.TIME_SERVICE += finishReadBook;
 
             this.env.Log(string.Format("---> {0} terminó de leer el libro en el minuto {1:0.00} habiendo esperado {2:0.00}", name, finishReadBook, awaited));
@@ -83,7 +100,7 @@ namespace Biblioteca
 
             double finishRentBook = this.env.NowD;
             double awaited = finishRentBook - arrive;
-            TOTAL_TIME_AWAITED_RENT += awaited;
+            this.TOTAL_TIME_AWAITED_RENT += awaited;
             this.TIME_SERVICE += finishRentBook;
 
             this.env.Log(string.Format("---> {0} terminó de solicitar el libro en el minuto {1:0.00} habiendo esperado {2:0.00}", name, finishRentBook, awaited));
@@ -95,19 +112,38 @@ namespace Biblioteca
             double arrive = this.env.NowD;
             this.env.Log(string.Format("El usuario {0} llego a la biblioteca en el minuto {1}", name, arrive));
 
+            double probabilityLeft = this.random.Next(0, 100 + 1);
+
+            double probabilityGoToLooker = 40;
+
+            if (probabilityLeft <= probabilityGoToLooker)
+            {
+                this.TOTAL_CLIENTS_IN_GO_TO_LOOKER++;
+                using (Request looker = this.lookers.Request())
+                {
+                    yield return looker;
+
+                    double goToLooker = this.env.NowD;
+
+                    this.env.Log(string.Format("---> {0} pasa al looker en el minuto {1:0.00}", name, goToLooker));
+
+                    yield return this.env.Process(this.GoToLooker(name));
+                }
+            }
+
+            probabilityLeft = this.random.Next(0, 100 + 1);
+
+            this.TOTAL_CLIENTS_IN_STANT++;
             using (Request stand = this.stands.Request()) {
                 // Select Book
                 yield return stand;
 
                 double goToStand = this.env.NowD;
-                //double awaited = goToStand - arrive;
 
                 this.env.Log(string.Format("---> {0} pasa al estante en el minuto {1:0.00}", name, goToStand));
 
                 yield return this.env.Process(this.SelectBook(name));
             }
-
-            double probabilityLeft = this.random.Next(0, 100 + 1);
 
             double probabilityReadBook = 20;
             if (probabilityLeft <= probabilityReadBook)
@@ -119,7 +155,6 @@ namespace Biblioteca
                     yield return areaR;
 
                     double goToReadingArea = this.env.NowD;
-                    //double awaited = goToReadingArea - arrive;
 
                     this.env.Log(string.Format("---> {0} pasa al area de lectura en el minuto {1:0.00}", name, goToReadingArea));
 
@@ -138,7 +173,6 @@ namespace Biblioteca
                         yield return libr;
 
                         double goToRentBook = this.env.NowD;
-                        //double awaited = goToRentBook - arrive;
 
                         this.env.Log(string.Format("---> {0} pasa con el bibliotecario para rentar el libro en el minuto {1:0.00}", name, goToRentBook));
 
@@ -172,7 +206,10 @@ namespace Biblioteca
             this.env.Log("\n---------------------------------------\n");
             this.env.Log("Indicadores Obtenidos");
 
-            double avgTimes = this.TOTAL_TIME_AWAITED_SELECT / this.TOTAL_CLIENTS;
+            double avgTimes = this.TOTAL_TIME_AWAITED_GO_TO_LOOKER / this.TOTAL_CLIENTS_IN_GO_TO_LOOKER;
+            this.env.Log(string.Format("Tiempo de espera promedio en el uso de los lookers {0:0.00}", avgTimes));
+            
+            avgTimes = this.TOTAL_TIME_AWAITED_SELECT / this.TOTAL_CLIENTS_IN_STANT;
             this.env.Log(string.Format("Tiempo de espera promedio en la seleccion de libros {0:0.00}", avgTimes));
             
             avgTimes = this.TOTAL_TIME_AWAITED_READ / this.TOTAL_CLIENTS_IN_READING_AREA;
